@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coated Paper Cost Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-display: 'Prokwell', 'Cormorant Garamond', Georgia, serif;
+      --font-mono: 'DM Mono', 'Courier New', monospace;
+
+      --bg-void:    #080e0e;
+      --bg-deep:    #0c1414;
+      --bg-surface: #101c1c;
+      --bg-card:    #172525;
+      --bg-hover:   #1d2e2e;
+
+      --teal:       #017171;
+      --teal-bright:#02a8a8;
+      --teal-glow:  #01d4d4;
+      --teal-dim:   #015252;
+      --teal-ghost: rgba(1,113,113,0.08);
+      --teal-border:rgba(1,180,180,0.22);
+
+      --text-primary:   #e8f0f0;
+      --text-secondary: #8aa8a8;
+      --text-muted:     #4d6e6e;
+      --text-accent:    #02d4d4;
+
+      --border-subtle: rgba(1,180,180,0.10);
+      --border-mid:    rgba(1,180,180,0.18);
+
+      --ease-expo: cubic-bezier(0.16,1,0.3,1);
+      --ease-smooth: cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-display);
+      background-color: var(--bg-void);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* Ambient background glow */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 8% 15%, rgba(1,113,113,0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 92% 85%, rgba(1,80,80,0.10) 0%, transparent 55%),
+        radial-gradient(ellipse 35% 35% at 55% 45%, rgba(1,60,60,0.06) 0%, transparent 70%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* Noise grain overlay */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0; opacity: 0.5;
+    }
+
+    /* ── HEADER ── */
+    .site-header {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(8,14,14,0.88);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 14px 40px;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    }
+
+    /* Scanline at top */
+    .site-header::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--teal-bright) 30%, var(--teal-glow) 50%, var(--teal-bright) 70%, transparent 100%);
+    }
+
+    .header-brand { display: flex; align-items: center; gap: 16px; }
+
+    .header-logo {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--teal), var(--teal-bright));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 22px rgba(1,180,180,0.4), 0 4px 12px rgba(0,0,0,0.4);
+      flex-shrink: 0;
+    }
+    .header-logo svg { width: 20px; height: 20px; stroke: rgba(255,255,255,0.95); fill: none; stroke-width: 1.8; }
+
+    .header-title {
+      font-size: 1.05rem; font-weight: 600; color: var(--text-primary); letter-spacing: 0.04em;
+    }
+    .header-subtitle {
+      font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 3px;
+    }
+
+    .header-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      background: rgba(1,180,180,0.07); border: 1px solid var(--border-subtle);
+      border-radius: 100px;
+    }
+    .pill-dot {
+      width: 6px; height: 6px; background: var(--teal-bright); border-radius: 50%;
+      animation: blink 2.4s ease-in-out infinite;
+      box-shadow: 0 0 6px var(--teal-bright);
+    }
+    @keyframes blink { 0%,100%{opacity:1;box-shadow:0 0 6px var(--teal-bright);} 50%{opacity:.35;box-shadow:none;} }
+    .pill-text { font-family: var(--font-mono); font-size: 0.62rem; color: var(--teal-bright); letter-spacing: 0.09em; text-transform: uppercase; }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: var(--font-display);
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 20px; border-radius: 8px;
+      font-size: 0.74rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+      cursor: pointer; border: 1px solid transparent;
+      transition: all .25s var(--ease-smooth); white-space: nowrap;
+    }
+    .btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+    .btn-ghost {
+      background: transparent; border-color: var(--border-mid); color: var(--text-secondary);
+    }
+    .btn-ghost:hover { background: var(--teal-ghost); border-color: var(--teal-border); color: var(--text-accent); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--teal), var(--teal-bright));
+      border-color: var(--teal-bright); color: #fff;
+      box-shadow: 0 0 22px rgba(1,180,180,0.28), 0 4px 12px rgba(0,0,0,0.3);
+      position: relative; overflow: hidden;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 36px rgba(1,180,180,0.45), 0 6px 20px rgba(0,0,0,0.4);
+    }
+    .btn-primary:active { transform: translateY(0); }
+
+    /* ── MAIN ── */
+    .main-content {
+      position: relative; z-index: 1;
+      max-width: 1220px; margin: 0 auto;
+      padding: 52px 40px 64px;
+    }
+
+    /* ── HERO ── */
+    .page-hero {
+      display: flex; align-items: flex-end; justify-content: space-between; gap: 24px;
+      margin-bottom: 52px;
+    }
+
+    .hero-eyebrow {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    }
+    .eyebrow-line {
+      width: 36px; height: 1px; background: var(--teal-bright);
+      box-shadow: 0 0 8px var(--teal-bright);
+    }
+    .eyebrow-text {
+      font-family: var(--font-mono); font-size: 0.62rem; color: var(--teal-bright);
+      letter-spacing: 0.15em; text-transform: uppercase;
+    }
+
+    .hero-heading {
+      font-size: clamp(2.2rem,4vw,3.4rem); font-weight: 300;
+      color: var(--text-primary); letter-spacing: -0.01em; line-height: 1.1;
+    }
+    .hero-heading strong {
+      font-weight: 600;
+      background: linear-gradient(115deg, var(--teal-bright) 0%, var(--teal-glow) 45%, #b0e8e8 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .hero-desc {
+      margin-top: 14px; font-size: 0.88rem; color: var(--text-muted);
+      max-width: 460px; line-height: 1.65; letter-spacing: 0.02em;
+    }
+
+    .hero-badge {
+      flex-shrink: 0; padding: 16px 22px;
+      background: linear-gradient(145deg, rgba(1,113,113,0.12), rgba(1,80,80,0.06));
+      border: 1px solid var(--teal-border); border-radius: 16px;
+      box-shadow: 0 0 28px rgba(1,113,113,0.18);
+      text-align: right;
+    }
+    .badge-label { font-family: var(--font-mono); font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+    .badge-val { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 500; color: var(--teal-bright); letter-spacing: 0.04em; }
+    .badge-sub { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px; }
+
+    /* ── SECTION HEADER ── */
+    .section-header {
+      display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+    }
+    .sec-num { font-family: var(--font-mono); font-size: 0.58rem; color: var(--teal); opacity: 0.6; letter-spacing: 0.1em; }
+    .sec-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--teal-bright); letter-spacing: 0.14em; text-transform: uppercase; }
+    .sec-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-subtle), transparent); }
+
+    /* ── SELECTION GRID ── */
+    .selection-wrapper { margin-bottom: 32px; }
+
+    .selection-grid {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 20px;
+    }
+
+    .dropdown-card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: 20px; padding: 24px;
+      transition: all 0.3s var(--ease-smooth);
+      position: relative; overflow: hidden;
+    }
+    .dropdown-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal-border), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .dropdown-card:hover { border-color: var(--teal-border); background: var(--bg-hover); box-shadow: 0 8px 48px rgba(1,180,180,0.15), 0 4px 20px rgba(0,0,0,0.4); }
+    .dropdown-card:hover::before { opacity: 1; }
+    .dropdown-card.active { border-color: var(--teal-border); box-shadow: 0 0 0 1px rgba(1,180,180,0.08), 0 4px 32px rgba(0,0,0,0.4); }
+
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+
+    .card-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--teal-dim), var(--teal));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-mono); font-size: 0.65rem; color: rgba(255,255,255,0.9);
+      box-shadow: 0 0 12px rgba(1,113,113,0.45); flex-shrink: 0;
+    }
+
+    .card-title { font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: ''; position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+      width: 0; height: 0;
+      border-left: 4px solid transparent; border-right: 4px solid transparent;
+      border-top: 5px solid var(--teal-bright);
+      pointer-events: none; filter: drop-shadow(0 0 3px var(--teal-bright));
+      transition: transform 0.2s;
+    }
+    .select-wrap:focus-within::after { transform: translateY(-50%) rotate(180deg); }
+
+    .select-wrap select {
+      font-family: var(--font-display);
+      width: 100%; padding: 13px 44px 13px 16px;
+      background: rgba(1,180,180,0.04); border: 1px solid var(--border-mid);
+      border-radius: 10px; color: var(--text-primary);
+      font-size: 0.9rem; appearance: none; -webkit-appearance: none;
+      cursor: pointer; transition: all 0.2s; outline: none; letter-spacing: 0.02em;
+    }
+    .select-wrap select option { background: var(--bg-deep); color: var(--text-primary); }
+    .select-wrap select:hover { border-color: var(--teal-border); background: rgba(1,180,180,0.07); }
+    .select-wrap select:focus { border-color: var(--teal-bright); box-shadow: 0 0 0 3px rgba(1,180,180,0.1); background: rgba(1,180,180,0.06); }
+
+    .supplier-detail {
+      overflow: hidden; max-height: 0; opacity: 0; transform: translateY(-6px);
+      padding: 0 14px; margin-top: 0;
+      transition: all 0.38s var(--ease-expo);
+    }
+    .supplier-detail.visible {
+      max-height: 80px; opacity: 1; transform: translateY(0);
+      padding: 13px 14px; margin-top: 13px;
+      background: rgba(1,180,180,0.05); border: 1px solid rgba(1,180,180,0.12); border-radius: 10px;
+    }
+    .detail-name { font-size: 0.88rem; font-weight: 600; color: var(--teal-bright); margin-bottom: 6px; }
+    .detail-meta { display: flex; gap: 18px; flex-wrap: wrap; }
+    .detail-item { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; }
+    .detail-key { color: var(--text-muted); font-size: 0.62rem; }
+
+    /* ── ASSUMPTIONS STRIP ── */
+    .assumptions-strip {
+      display: flex; border: 1px solid var(--border-subtle); border-radius: 16px;
+      overflow: hidden; background: var(--bg-card); margin-bottom: 36px;
+    }
+    .assum-item {
+      flex: 1; padding: 15px 18px; text-align: center;
+      border-right: 1px solid var(--border-subtle);
+      transition: background 0.2s;
+    }
+    .assum-item:last-child { border-right: none; }
+    .assum-item:hover { background: var(--teal-ghost); }
+    .assum-val { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 500; color: var(--teal-bright); margin-bottom: 3px; }
+    .assum-label { font-size: 0.58rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    /* ── KPI GRID ── */
+    .kpi-wrapper { margin-bottom: 36px; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 16px; }
+
+    .kpi-card {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: 20px; padding: 26px 22px 22px;
+      position: relative; overflow: hidden; cursor: default;
+      transition: all 0.3s var(--ease-smooth);
+      animation: slide-up 0.6s var(--ease-expo) both;
+    }
+    .kpi-card:nth-child(1){animation-delay:.05s} .kpi-card:nth-child(2){animation-delay:.10s}
+    .kpi-card:nth-child(3){animation-delay:.15s} .kpi-card:nth-child(4){animation-delay:.20s}
+    .kpi-card:nth-child(5){animation-delay:.25s}
+
+    @keyframes slide-up { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+    /* Top shimmer */
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal-border), transparent);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    /* Ambient glow bubble */
+    .kpi-card::after {
+      content: ''; position: absolute; bottom: -35px; right: -35px;
+      width: 90px; height: 90px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(1,113,113,0.14), transparent 70%);
+      transition: all 0.4s;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--teal-border); background: var(--bg-hover);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 52px rgba(1,180,180,0.18), 0 4px 24px rgba(0,0,0,0.45);
+    }
+    .kpi-card:hover::before { opacity: 1; }
+    .kpi-card:hover::after { width: 130px; height: 130px; bottom: -45px; right: -45px; }
+
+    /* Featured card */
+    .kpi-card.featured {
+      background: linear-gradient(150deg, #0e2424 0%, #142e2e 50%, #0e2424 100%);
+      border-color: var(--teal-border);
+      box-shadow: 0 0 50px rgba(1,180,180,0.2), 0 4px 32px rgba(0,0,0,0.4);
+    }
+    .kpi-card.featured::before { opacity: 1; background: linear-gradient(90deg, transparent, var(--teal-glow), transparent); }
+    .kpi-card.featured::after { background: radial-gradient(circle, rgba(1,180,180,0.16), transparent 70%); width: 110px; height: 110px; }
+    .kpi-card.featured:hover {
+      box-shadow: 0 0 80px rgba(1,180,180,0.38), 0 10px 40px rgba(0,0,0,0.5);
+      transform: translateY(-7px);
+    }
+
+    .kpi-icon {
+      width: 34px; height: 34px;
+      background: rgba(1,180,180,0.1); border: 1px solid rgba(1,180,180,0.15);
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .kpi-icon svg { width: 15px; height: 15px; stroke: var(--teal-bright); fill: none; stroke-width: 1.8; }
+    .kpi-card.featured .kpi-icon { background: rgba(1,180,180,0.18); border-color: rgba(1,180,180,0.3); box-shadow: 0 0 14px rgba(1,180,180,0.22); }
+
+    .kpi-label { font-family: var(--font-mono); font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+    .kpi-card.featured .kpi-label { color: rgba(2,212,212,0.55); }
+
+    .kpi-value {
+      font-size: 1.65rem; font-weight: 600; color: var(--text-primary);
+      letter-spacing: -0.02em; line-height: 1; margin-bottom: 6px;
+      transition: all 0.2s var(--ease-smooth);
+    }
+    .kpi-value.placeholder { font-weight: 300; color: var(--text-muted); letter-spacing: 0.04em; font-size: 1.4rem; }
+    .kpi-value.updating { opacity: 0; transform: translateY(6px) scale(0.96); }
+
+    .kpi-card.featured .kpi-value {
+      font-size: 2rem;
+      background: linear-gradient(120deg, var(--teal-bright) 0%, var(--teal-glow) 45%, #a8f0f0 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .kpi-card.featured .kpi-value.placeholder {
+      background: none; -webkit-text-fill-color: var(--text-muted); color: var(--text-muted); font-size: 1.4rem;
+    }
+    .kpi-unit { font-family: var(--font-mono); font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.06em; }
+    .kpi-card.featured .kpi-unit { color: rgba(2,212,212,0.45); }
+
+    /* ── LOGIC SECTION ── */
+    .logic-section {
+      background: var(--bg-card); border: 1px solid var(--border-subtle);
+      border-radius: 20px; overflow: hidden; margin-bottom: 64px;
+    }
+
+    .logic-toggle {
+      width: 100%; background: none; border: none;
+      padding: 20px 28px; display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer; font-family: var(--font-display); color: inherit;
+      transition: background 0.2s;
+    }
+    .logic-toggle:hover { background: var(--teal-ghost); }
+
+    .toggle-left { display: flex; align-items: center; gap: 14px; }
+    .toggle-icon {
+      width: 32px; height: 32px; background: rgba(1,180,180,0.1);
+      border: 1px solid var(--border-mid); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .toggle-icon svg { width: 14px; height: 14px; stroke: var(--teal-bright); fill: none; stroke-width: 2; }
+    .toggle-title { font-size: 0.88rem; font-weight: 600; color: var(--text-primary); letter-spacing: 0.02em; }
+    .toggle-sub { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; letter-spacing: 0.04em; }
+
+    .logic-chevron { width: 18px; height: 18px; stroke: var(--text-muted); fill: none; stroke-width: 2; transition: transform 0.35s var(--ease-smooth); }
+    .logic-chevron.open { transform: rotate(180deg); }
+
+    .logic-body { max-height: 0; overflow: hidden; transition: max-height 0.5s var(--ease-expo); }
+    .logic-body.open { max-height: 900px; }
+
+    .logic-inner { padding: 0 28px 28px; border-top: 1px solid var(--border-subtle); }
+    .formula-grid { display: flex; flex-direction: column; gap: 11px; margin-top: 22px; }
+
+    .formula-row {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 15px 20px;
+      background: rgba(1,180,180,0.03); border: 1px solid var(--border-subtle);
+      border-radius: 10px; border-left: 2px solid var(--teal);
+      transition: all 0.2s;
+    }
+    .formula-row:hover { background: var(--teal-ghost); border-left-color: var(--teal-bright); }
+
+    .f-idx { font-family: var(--font-mono); font-size: 0.6rem; color: var(--teal-bright); opacity: 0.65; min-width: 18px; margin-top: 2px; }
+    .f-name { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; }
+    .f-expr { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary); letter-spacing: 0.01em; }
+
+    /* ── FOOTER ── */
+    .site-footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border-subtle); padding: 18px 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(8,14,14,0.6);
+    }
+    .footer-left { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.06em; }
+    .footer-right { font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+    .f-teal { color: var(--teal-bright); }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: 28px; right: 28px;
+      background: var(--bg-card); border: 1px solid var(--border-mid);
+      color: var(--text-primary); padding: 12px 20px; border-radius: 14px;
+      font-family: var(--font-mono); font-size: 0.73rem; letter-spacing: 0.04em;
+      z-index: 999; transform: translateY(20px); opacity: 0;
+      transition: all 0.4s var(--ease-expo); pointer-events: none;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(1,180,180,0.08);
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast-dot { width: 7px; height: 7px; background: var(--teal-bright); border-radius: 50%; box-shadow: 0 0 8px var(--teal-bright); flex-shrink: 0; }
+
+    /* ── PRINT ── */
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      body::before, body::after { display: none; }
+      .site-header { position: static; background: #fff; box-shadow: none; border-bottom: 1px solid #ccc; }
+      .header-actions { display: none; }
+      .kpi-card, .dropdown-card, .assumptions-strip, .logic-section { background: #f8f8f8 !important; border: 1px solid #ddd; box-shadow: none !important; }
+      .kpi-value { color: #000 !important; -webkit-text-fill-color: #000 !important; }
+      .logic-body { max-height: none !important; }
+      .logic-chevron { display: none; }
+      .toast { display: none; }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 1080px) { .kpi-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 860px) {
+      .selection-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .main-content { padding: 32px 20px 48px; }
+      .site-header { padding: 12px 20px; }
+      .page-hero { flex-direction: column; align-items: flex-start; }
+      .assumptions-strip { flex-wrap: wrap; }
+      .assum-item { min-width: 33%; }
+    }
+    @media (max-width: 500px) {
+      .kpi-grid { grid-template-columns: 1fr; }
+      .assumptions-strip { flex-direction: column; }
+      .assum-item { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+      .site-footer { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header class="site-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+      </div>
+      <div>
+        <div class="header-title">Coated Paper Cost Dashboard</div>
+        <div class="header-subtitle">Interactive cost calculator · Food-grade packaging</div>
+      </div>
+    </div>
+
+    <div class="header-pill">
+      <div class="pill-dot"></div>
+      <span class="pill-text">Live Calculator</span>
+    </div>
+
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="resetBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset
+      </button>
+      <button class="btn btn-primary" id="exportBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export PDF
+      </button>
+    </div>
+  </header>
+
+  <!-- ── MAIN ── -->
+  <main class="main-content">
+
+    <!-- HERO -->
+    <div class="page-hero">
+      <div>
+        <div class="hero-eyebrow">
+          <div class="eyebrow-line"></div>
+          <span class="eyebrow-text">Interactive Cost Model · 284 GSM System</span>
+        </div>
+        <h1 class="hero-heading">Coated Paper<br><strong>Cost Analysis</strong></h1>
+        <p class="hero-desc">Select your suppliers below to calculate real-time coating cost per tonne and per square metre for food-grade packaging.</p>
+      </div>
+      <div class="hero-badge">
+        <div class="badge-label">Total GSM</div>
+        <div class="badge-val">284 GSM</div>
+        <div class="badge-sub">Base 280 + Coating 4</div>
+      </div>
+    </div>
+
+    <!-- SECTION 01: SUPPLIER SELECTION -->
+    <div class="selection-wrapper">
+      <div class="section-header">
+        <span class="sec-num">01</span>
+        <span class="sec-label">Supplier Configuration</span>
+        <div class="sec-line"></div>
+      </div>
+
+      <div class="selection-grid">
+
+        <!-- Coating Converter -->
+        <div class="dropdown-card" id="coatingCard">
+          <div class="card-header">
+            <div class="card-num">01</div>
+            <div class="card-title">Coating Converter</div>
+          </div>
+          <div class="select-wrap">
+            <select id="coatingSelect"><option value="">— Select converter —</option></select>
+          </div>
+          <div class="supplier-detail" id="coatingDetail">
+            <div class="detail-name" id="coatingDetailName"></div>
+            <div class="detail-meta">
+              <div class="detail-item"><span class="detail-key">Price</span>&nbsp;£<span id="coatingDetailPrice"></span>/kg</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alginate Supplier -->
+        <div class="dropdown-card" id="alginateCard">
+          <div class="card-header">
+            <div class="card-num">02</div>
+            <div class="card-title">Sodium Alginate Supplier</div>
+          </div>
+          <div class="select-wrap">
+            <select id="alginateSelect"><option value="">— Select supplier —</option></select>
+          </div>
+          <div class="supplier-detail" id="alginateDetail">
+            <div class="detail-name" id="alginateDetailName"></div>
+            <div class="detail-meta">
+              <div class="detail-item"><span class="detail-key">Price</span>&nbsp;£<span id="alginateDetailPrice"></span>/kg</div>
+              <div class="detail-item"><span class="detail-key">Distance</span>&nbsp;<span id="alginateDetailDist"></span> km</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paperboard Supplier -->
+        <div class="dropdown-card" id="paperCard">
+          <div class="card-header">
+            <div class="card-num">03</div>
+            <div class="card-title">Paperboard Supplier</div>
+          </div>
+          <div class="select-wrap">
+            <select id="paperSelect"><option value="">— Select supplier —</option></select>
+          </div>
+          <div class="supplier-detail" id="paperDetail">
+            <div class="detail-name" id="paperDetailName"></div>
+            <div class="detail-meta">
+              <div class="detail-item"><span class="detail-key">Price</span>&nbsp;£<span id="paperDetailPrice"></span>/kg</div>
+              <div class="detail-item"><span class="detail-key">Distance</span>&nbsp;<span id="paperDetailDist"></span> km</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TECHNICAL ASSUMPTIONS STRIP -->
+    <div class="assumptions-strip">
+      <div class="assum-item"><div class="assum-val">985.92</div><div class="assum-label">Paper Factor</div></div>
+      <div class="assum-item"><div class="assum-val">14.08</div><div class="assum-label">Alginate Factor</div></div>
+      <div class="assum-item"><div class="assum-val">£150</div><div class="assum-label">Fixed Conversion</div></div>
+      <div class="assum-item"><div class="assum-val">0.0394368</div><div class="assum-label">Paper Logistics</div></div>
+      <div class="assum-item"><div class="assum-val">0.0004224</div><div class="assum-label">Coating Logistics</div></div>
+      <div class="assum-item"><div class="assum-val">0.000284</div><div class="assum-label">m² Factor</div></div>
+    </div>
+
+    <!-- SECTION 02: KPI RESULTS -->
+    <div class="kpi-wrapper">
+      <div class="section-header">
+        <span class="sec-num">02</span>
+        <span class="sec-label">Cost Breakdown</span>
+        <div class="sec-line"></div>
+      </div>
+
+      <div class="kpi-grid">
+
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+          </div>
+          <div class="kpi-label">Raw Material Cost</div>
+          <div class="kpi-value placeholder" id="kpiRawMaterial">—</div>
+          <div class="kpi-unit">£ / tonne</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <div class="kpi-label">Logistics Cost</div>
+          <div class="kpi-value placeholder" id="kpiLogistics">—</div>
+          <div class="kpi-unit">£ / tonne</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div class="kpi-label">Conversion Cost</div>
+          <div class="kpi-value placeholder" id="kpiConversion">—</div>
+          <div class="kpi-unit">£ / tonne</div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24"><path d="M20 4H4l7 8-7 8h16"/></svg>
+          </div>
+          <div class="kpi-label">Total Cost</div>
+          <div class="kpi-value placeholder" id="kpiTotalTonne">—</div>
+          <div class="kpi-unit">£ / tonne</div>
+        </div>
+
+        <div class="kpi-card featured">
+          <div class="kpi-icon">
+            <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <div class="kpi-label">Total Cost per m²</div>
+          <div class="kpi-value placeholder" id="kpiTotalSqm">—</div>
+          <div class="kpi-unit">£ / m²</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 03: LOGIC -->
+    <div class="section-header">
+      <span class="sec-num">03</span>
+      <span class="sec-label">Calculation Logic</span>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="logic-section">
+      <button class="logic-toggle" id="logicToggle" aria-expanded="false">
+        <div class="toggle-left">
+          <div class="toggle-icon">
+            <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          </div>
+          <div>
+            <div class="toggle-title">Formula Reference</div>
+            <div class="toggle-sub">5 formulas · fixed constants · per-tonne &amp; per-m² outputs</div>
+          </div>
+        </div>
+        <svg class="logic-chevron" id="logicChevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <div class="logic-body" id="logicBody">
+        <div class="logic-inner">
+          <div class="formula-grid">
+            <div class="formula-row">
+              <div class="f-idx">F1</div>
+              <div><div class="f-name">Raw Material Cost (£/tonne)</div><div class="f-expr">rawMaterialCost = (paperPrice × 985.92) + (alginatePrice × 14.08)</div></div>
+            </div>
+            <div class="formula-row">
+              <div class="f-idx">F2</div>
+              <div><div class="f-name">Logistics Cost (£/tonne)</div><div class="f-expr">logisticsCost = (paperDist × 0.0394368) + (alginateDist × 0.0004224)</div></div>
+            </div>
+            <div class="formula-row">
+              <div class="f-idx">F3</div>
+              <div><div class="f-name">Conversion Cost (£/tonne)</div><div class="f-expr">conversionCost = coatingConverterPrice × 1000</div></div>
+            </div>
+            <div class="formula-row">
+              <div class="f-idx">F4</div>
+              <div><div class="f-name">Total Cost (£/tonne)</div><div class="f-expr">totalPerTonne = rawMaterialCost + logisticsCost + conversionCost</div></div>
+            </div>
+            <div class="formula-row">
+              <div class="f-idx">F5</div>
+              <div><div class="f-name">Total Cost (£/m²)</div><div class="f-expr">totalPerSqm = totalPerTonne × 0.000284</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── FOOTER ── -->
+  <footer class="site-footer">
+    <div class="footer-left">© Coated Paper Cost Dashboard — Food-Grade Packaging Analysis</div>
+    <div class="footer-right">
+      <span class="f-teal">284 GSM</span><span>·</span>
+      <span>All values in GBP (£)</span><span>·</span>
+      <span class="f-teal">Teal Coating System</span>
+    </div>
+  </footer>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">
+    <div class="toast-dot"></div>
+    <span id="toastMsg"></span>
+  </div>
+
+  <!-- ── JAVASCRIPT ── -->
+  <script>
+    /* DATA */
+    const coatingConverters = [
+      { name: "Varsya", pricePerKg: 0.15 }
+    ];
+    const alginateSuppliers = [
+      { name: "SNAP",           pricePerKg: 6,  distance: 1200 },
+      { name: "Marine",         pricePerKg: 8,  distance: 1350 },
+      { name: "Seakol",         pricePerKg: 11, distance: 1300 },
+      { name: "Hariharathmaja", pricePerKg: 9,  distance: 1400 }
+    ];
+    const paperboardSuppliers = [
+      { name: "ITC",  pricePerKg: 0.70, distance: 1080 },
+      { name: "APP",  pricePerKg: 0.66, distance: 980  },
+      { name: "WML",  pricePerKg: 0.74, distance: 700  },
+      { name: "Park", pricePerKg: 0.50, distance: 650  }
+    ];
+
+    /* CONSTANTS */
+    const paperFactor            = 985.92;
+    const alginateFactor         = 14.08;
+    const sqmFactor              = 0.000284;
+    const paperLogisticsFactor   = 0.0394368;
+    const coatingLogisticsFactor = 0.0004224;
+
+    /* DOM */
+    const coatingSelect  = document.getElementById('coatingSelect');
+    const alginateSelect = document.getElementById('alginateSelect');
+    const paperSelect    = document.getElementById('paperSelect');
+    const kpiRaw  = document.getElementById('kpiRawMaterial');
+    const kpiLog  = document.getElementById('kpiLogistics');
+    const kpiCon  = document.getElementById('kpiConversion');
+    const kpiTon  = document.getElementById('kpiTotalTonne');
+    const kpiSqm  = document.getElementById('kpiTotalSqm');
+
+    /* Populate dropdowns */
+    function fill(sel, items, fn) {
+      items.forEach((item, i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = fn(item); sel.appendChild(o);
+      });
+    }
+    fill(coatingSelect,  coatingConverters,   i => `${i.name} — £${i.pricePerKg}/kg`);
+    fill(alginateSelect, alginateSuppliers,   i => `${i.name} — £${i.pricePerKg}/kg`);
+    fill(paperSelect,    paperboardSuppliers, i => `${i.name} — £${i.pricePerKg}/kg`);
+
+    /* Detail panel helpers */
+    function showDetail(id, fields) {
+      Object.entries(fields).forEach(([k,v]) => { document.getElementById(k).textContent = v; });
+      document.getElementById(id).classList.add('visible');
+    }
+    function hideDetail(id) { document.getElementById(id).classList.remove('visible'); }
+
+    /* KPI animation */
+    function setKpi(el, val) {
+      el.classList.add('updating');
+      setTimeout(() => {
+        el.textContent = val;
+        el.classList.remove('updating', 'placeholder');
+      }, 165);
+    }
+    function resetKpis() {
+      [kpiRaw, kpiLog, kpiCon, kpiTon, kpiSqm].forEach(el => {
+        el.classList.add('updating');
+        setTimeout(() => { el.textContent = '—'; el.classList.remove('updating'); el.classList.add('placeholder'); }, 165);
+      });
+    }
+
+    /* CALCULATE */
+    function calculate() {
+      const ci = coatingSelect.value, ai = alginateSelect.value, pi = paperSelect.value;
+      if (!ci || !ai || !pi) { resetKpis(); return; }
+
+      const conv  = coatingConverters[+ci];
+      const alg   = alginateSuppliers[+ai];
+      const paper = paperboardSuppliers[+pi];
+
+      const rawMat     = (paper.pricePerKg * paperFactor) + (alg.pricePerKg * alginateFactor);
+      const logistics  = (paper.distance * paperLogisticsFactor) + (alg.distance * coatingLogisticsFactor);
+      const conversion = conv.pricePerKg * 1000;
+      const totalTonne = rawMat + logistics + conversion;
+      const totalSqm   = totalTonne * sqmFactor;
+
+      setKpi(kpiRaw, `£${rawMat.toFixed(2)}`);
+      setKpi(kpiLog, `£${logistics.toFixed(2)}`);
+      setKpi(kpiCon, `£${conversion.toFixed(2)}`);
+      setKpi(kpiTon, `£${totalTonne.toFixed(2)}`);
+      setKpi(kpiSqm, `£${totalSqm.toFixed(3)}`);
+    }
+
+    /* EVENTS */
+    coatingSelect.addEventListener('change', () => {
+      const i = coatingSelect.value;
+      if (!i) { hideDetail('coatingDetail'); document.getElementById('coatingCard').classList.remove('active'); }
+      else {
+        const item = coatingConverters[+i];
+        showDetail('coatingDetail', { coatingDetailName: item.name, coatingDetailPrice: item.pricePerKg.toFixed(2) });
+        document.getElementById('coatingCard').classList.add('active');
+      }
+      calculate();
+    });
+
+    alginateSelect.addEventListener('change', () => {
+      const i = alginateSelect.value;
+      if (!i) { hideDetail('alginateDetail'); document.getElementById('alginateCard').classList.remove('active'); }
+      else {
+        const item = alginateSuppliers[+i];
+        showDetail('alginateDetail', { alginateDetailName: item.name, alginateDetailPrice: item.pricePerKg.toFixed(2), alginateDetailDist: item.distance.toLocaleString() });
+        document.getElementById('alginateCard').classList.add('active');
+      }
+      calculate();
+    });
+
+    paperSelect.addEventListener('change', () => {
+      const i = paperSelect.value;
+      if (!i) { hideDetail('paperDetail'); document.getElementById('paperCard').classList.remove('active'); }
+      else {
+        const item = paperboardSuppliers[+i];
+        showDetail('paperDetail', { paperDetailName: item.name, paperDetailPrice: item.pricePerKg.toFixed(2), paperDetailDist: item.distance.toLocaleString() });
+        document.getElementById('paperCard').classList.add('active');
+      }
+      calculate();
+    });
+
+    /* RESET */
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      coatingSelect.value = ''; alginateSelect.value = ''; paperSelect.value = '';
+      ['coatingDetail','alginateDetail','paperDetail'].forEach(hideDetail);
+      ['coatingCard','alginateCard','paperCard'].forEach(id => document.getElementById(id).classList.remove('active'));
+      resetKpis();
+      showToast('Dashboard reset');
+    });
+
+    /* EXPORT PDF */
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      const lb = document.getElementById('logicBody');
+      const lc = document.getElementById('logicChevron');
+      const lt = document.getElementById('logicToggle');
+      const wasOpen = lb.classList.contains('open');
+      if (!wasOpen) { lb.classList.add('open'); lc.classList.add('open'); lt.setAttribute('aria-expanded','true'); }
+      setTimeout(() => {
+        window.print();
+        showToast('PDF export initiated');
+        if (!wasOpen) { lb.classList.remove('open'); lc.classList.remove('open'); lt.setAttribute('aria-expanded','false'); }
+      }, 350);
+    });
+
+    /* LOGIC TOGGLE */
+    document.getElementById('logicToggle').addEventListener('click', () => {
+      const open = document.getElementById('logicBody').classList.toggle('open');
+      document.getElementById('logicChevron').classList.toggle('open', open);
+      document.getElementById('logicToggle').setAttribute('aria-expanded', String(open));
+    });
+
+    /* TOAST */
+    let toastTimer;
+    function showToast(msg) {
+      document.getElementById('toastMsg').textContent = msg;
+      document.getElementById('toast').classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('show'), 3000);
+    }
+
+    /* INIT — auto-select sole converter */
+    if (coatingConverters.length === 1) {
+      coatingSelect.value = '0';
+      const item = coatingConverters[0];
+      showDetail('coatingDetail', { coatingDetailName: item.name, coatingDetailPrice: item.pricePerKg.toFixed(2) });
+      document.getElementById('coatingCard').classList.add('active');
+    }
+  </script>
+</body>
+</html>
