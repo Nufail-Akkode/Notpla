@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="color-scheme" content="light" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cost Estimator — Sodium Alginate Coated Paper Board</title>
 
@@ -10,6 +11,7 @@
        TOKENS — single font: Times New Roman
     ───────────────────────────────────────────── */
     :root {
+      color-scheme: light only;
       --font: 'Times New Roman', Times, serif;
 
       --bg:          #f2f5f4;
@@ -541,6 +543,96 @@
       .kpi-grid { grid-template-columns: 1fr; }
       .const-item { min-width: 50%; }
     }
+
+    /* ─────────────────────────────────────────────
+       FORCE LIGHT MODE — prevent system dark theme
+       from changing any colours or backgrounds
+    ───────────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      html, body {
+        background-color: #f2f5f4 !important;
+        color: #0b1c1c !important;
+      }
+      .site-header {
+        background: rgba(255,255,255,0.96) !important;
+        border-bottom-color: #cce8e8 !important;
+      }
+      .header-eyebrow { color: #018a8a !important; }
+      .header-title   { color: #017171 !important; }
+      .sec-title      { color: #0b1c1c !important; }
+      .sec-index      { color: #017171 !important; }
+      .sec-rule       { background: #cedede !important; }
+      .drop-card {
+        background: #ffffff !important;
+        border-color: #cedede !important;
+        color: #0b1c1c !important;
+      }
+      .card-head-title { color: #1a3636 !important; }
+      .sel-wrap select {
+        background: #ecf2f1 !important;
+        color: #0b1c1c !important;
+        border-color: #b0cccc !important;
+      }
+      .sel-wrap select option {
+        background: #ffffff !important;
+        color: #0b1c1c !important;
+      }
+      .sup-detail-inner {
+        background: #e3f4f4 !important;
+        border-color: rgba(1,113,113,0.20) !important;
+      }
+      .sup-name  { color: #015252 !important; }
+      .sup-meta-key { color: #5e8686 !important; }
+      .sup-meta-val { color: #1a3636 !important; }
+      .constants-strip {
+        background: #ffffff !important;
+        border-color: #cedede !important;
+      }
+      .const-item  { background: #ffffff !important; color: #0b1c1c !important; border-color: #cedede !important; }
+      .const-val   { color: #015252 !important; }
+      .const-label { color: #5e8686 !important; }
+      .kpi-card {
+        background: #ffffff !important;
+        border-color: #cedede !important;
+        color: #0b1c1c !important;
+      }
+      .kpi-label { color: #5e8686 !important; }
+      .kpi-value { color: #0b1c1c !important; }
+      .kpi-value.placeholder { color: #a0c0c0 !important; }
+      .kpi-card.featured {
+        background: #017171 !important;
+        border-color: #015252 !important;
+      }
+      .kpi-card.featured .kpi-label { color: rgba(255,255,255,0.75) !important; }
+      .kpi-card.featured .kpi-value { color: #ffffff !important; }
+      .kpi-card.featured .kpi-value.placeholder { color: rgba(255,255,255,0.35) !important; }
+      .logic-section {
+        background: #ffffff !important;
+        border-color: #cedede !important;
+      }
+      .logic-toggle {
+        background: #ffffff !important;
+        color: #0b1c1c !important;
+      }
+      .logic-toggle:hover { background: #ecf2f1 !important; }
+      .toggle-title { color: #0b1c1c !important; }
+      .toggle-sub   { color: #5e8686 !important; }
+      .logic-inner  { border-top-color: #cedede !important; }
+      .formula-row  {
+        background: #ecf2f1 !important;
+        border-color: #cedede !important;
+        border-left-color: #017171 !important;
+      }
+      .formula-row:hover { background: #e3f0ef !important; }
+      .f-num  { color: #017171 !important; }
+      .f-name { color: #5e8686 !important; }
+      .f-expr { color: #1a3636 !important; }
+      .site-footer { background: #ffffff !important; border-top-color: #cedede !important; }
+      .footer-copy { color: #5e8686 !important; }
+      .footer-copy strong { color: #015252 !important; }
+      .chevron { stroke: #325252 !important; }
+      .toast   { background: #0b1c1c !important; color: #ffffff !important; }
+    }
   </style>
 </head>
 <body>
@@ -813,34 +905,60 @@
   <!-- ═══ JAVASCRIPT ═══ -->
   <script>
     /* ── DATA ── */
+
+    /*
+     * 7 converters × 11 alginate suppliers × 10 paperboard suppliers = 770 combinations
+     *
+     * Distance from each supplier to the converter changes per converter.
+     * distances[] index matches converter index:
+     * [0] Varsya  [1] Brite Coatings  [2] WPPL  [3] OPG
+     * [4] Label Line  [5] SRI PON  [6] PAWAR
+     *
+     * Price per kg for alginate & paperboard is constant across converters.
+     * Source: PDF pricing sheet (final approved version).
+     */
+
     const coatingConverters = [
-      { name: "Varsya",        pricePerKg: 0.15 },
-      { name: "Brite Coatings",pricePerKg: 0.25 }
+      { name: "Varsya",         pricePerKg: 0.15 },
+      { name: "Brite Coatings", pricePerKg: 0.25 },
+      { name: "WPPL",           pricePerKg: 0.22 },
+      { name: "OPG",            pricePerKg: 0.20 },
+      { name: "Label Line",     pricePerKg: 0.15 },
+      { name: "SRI PON",        pricePerKg: 0.18 },
+      { name: "PAWAR",          pricePerKg: 0.15 }
     ];
+
+    /* Alginate price/kg constant; distances vary by converter index */
     const alginateSuppliers = [
-      { name: "SNAP",               pricePerKg: 6,  distance: 1200 },
-      { name: "Marine",             pricePerKg: 8,  distance: 1350 },
-      { name: "Seakol",             pricePerKg: 11, distance: 1300 },
-      { name: "Hariharathmaja",     pricePerKg: 9,  distance: 1400 },
-      { name: "Amit Group",         pricePerKg: 13, distance: 25   },
-      { name: "SRK Enterprises",    pricePerKg: 4,  distance: 35   },
-      { name: "Labh Ingredients",   pricePerKg: 13, distance: 10   },
-      { name: "Novasol",            pricePerKg: 12, distance: 500  },
-      { name: "Krishna Polymer",    pricePerKg: 5,  distance: 450  },
-      { name: "Sha Narendra Sons",  pricePerKg: 7,  distance: 1350 },
-      { name: "Adiraj",             pricePerKg: 7,  distance: 500  }
+      /*                                              [0]    [1]    [2]    [3]    [4]    [5]    [6]  */
+      /*                                           Varsya   BC   WPPL    OPG    LL   SRIPON  PAWAR */
+      { name: "SNAP",              pricePerKg:  6, distances: [1200, 1200, 2200, 2150, 1300,  500, 1000] },
+      { name: "Marine",            pricePerKg:  8, distances: [1350, 1300, 2600, 2550, 1250,  350, 1200] },
+      { name: "Seakol",            pricePerKg: 11, distances: [1300, 1250, 2300, 2250, 1300,  550, 1100] },
+      { name: "Hariharathmaja",    pricePerKg:  9, distances: [1400, 1300, 2600, 2550, 1200,  300, 1250] },
+      { name: "Amit Group",        pricePerKg: 13, distances: [  25,   20, 1400, 1350,   35, 1500,  200] },
+      { name: "SRK Enterprises",   pricePerKg:  4, distances: [  35,   10, 1100, 1100,   20, 1450,  220] },
+      { name: "Labh Ingredients",  pricePerKg: 13, distances: [  10,   30, 1400, 1350,   40, 1480,  250] },
+      { name: "Novasol",           pricePerKg: 12, distances: [ 500,  550, 1000,  900,  600, 2100,  720] },
+      { name: "Krishna Polymer",   pricePerKg:  5, distances: [ 450,  500, 1000,  950,  650, 2000,  700] },
+      { name: "Sha Narendra Sons", pricePerKg:  7, distances: [1350, 1300, 2300, 2250, 1250,  560, 1100] },
+      { name: "Adiraj",            pricePerKg:  7, distances: [ 500,  500, 1900, 1800,  600, 1000,  350] }
     ];
+
+    /* Paperboard price/kg constant; distances vary by converter index */
     const paperboardSuppliers = [
-      { name: "ITC",        pricePerKg: 0.70, distance: 1080 },
-      { name: "APP",        pricePerKg: 0.66, distance: 980  },
-      { name: "WML",        pricePerKg: 0.74, distance: 700  },
-      { name: "Park",       pricePerKg: 0.50, distance: 650  },
-      { name: "Subam",      pricePerKg: 0.47, distance: 1600 },
-      { name: "Paswara",    pricePerKg: 0.50, distance: 1400 },
-      { name: "Laxmi Mills",pricePerKg: 0.50, distance: 80   },
-      { name: "Neptune",    pricePerKg: 0.54, distance: 50   },
-      { name: "Shobhnath",  pricePerKg: 0.62, distance: 10   },
-      { name: "SMT",        pricePerKg: 0.70, distance: 1350 }
+      /*                                              [0]    [1]    [2]    [3]    [4]    [5]    [6]  */
+      /*                                           Varsya   BC   WPPL    OPG    LL   SRIPON  PAWAR */
+      { name: "ITC",         pricePerKg: 0.70, distances: [1080, 1100, 1700, 1650, 1200, 1250,  900] },
+      { name: "APP",         pricePerKg: 0.66, distances: [ 980,  950, 2200, 2150, 1050,  500,  850] },
+      { name: "WML",         pricePerKg: 0.74, distances: [ 700,  680, 1250, 1200,  750, 2200,  800] },
+      { name: "Park",        pricePerKg: 0.50, distances: [ 650,  700, 1150, 1100,  800, 2250,  900] },
+      { name: "Subam",       pricePerKg: 0.47, distances: [1600, 1650, 2800, 2750, 1750,  120, 1400] },
+      { name: "Paswara",     pricePerKg: 0.50, distances: [1400, 1450,  100,   80, 1500, 2700, 1550] },
+      { name: "Laxmi Mills", pricePerKg: 0.50, distances: [  80,  100, 1400, 1350,  120, 1500,  280] },
+      { name: "Neptune",     pricePerKg: 0.54, distances: [  50,   40, 1300, 1250,   30, 1550,  220] },
+      { name: "Shobhnath",   pricePerKg: 0.62, distances: [  10,   25, 1450, 1400,   30, 1500,  200] },
+      { name: "SMT",         pricePerKg: 0.70, distances: [1350, 1300, 2300, 2250, 1250,  520, 1100] }
     ];
 
     /* ── CONSTANTS ── */
@@ -907,8 +1025,12 @@
       const alg   = alginateSuppliers[+ai];
       const paper = paperboardSuppliers[+pi];
 
+      /* Distance from each supplier to the selected converter */
+      const algDist   = alg.distances[+ci];
+      const paperDist = paper.distances[+ci];
+
       const rawMat     = (paper.pricePerKg * paperFactor) + (alg.pricePerKg * alginateFactor);
-      const logistics  = (paper.distance * paperLogisticsFactor) + (alg.distance * coatingLogisticsFactor);
+      const logistics  = (paperDist * paperLogisticsFactor) + (algDist * coatingLogisticsFactor);
       const conversion = conv.pricePerKg * 1000;
       const totalTonne = rawMat + logistics + conversion;
       const totalSqm   = totalTonne * sqmFactor;
@@ -932,18 +1054,31 @@
         });
         $('coatingDropCard').classList.add('active');
       }
+      /* Refresh distances in alginate and paper detail panels when converter changes */
+      const ai = alginateSelect.value;
+      if (ai !== '' && i !== '') {
+        const alg = alginateSuppliers[+ai];
+        $('alginateDetailDist').textContent = alg.distances[+i].toLocaleString();
+      }
+      const pi = paperSelect.value;
+      if (pi !== '' && i !== '') {
+        const paper = paperboardSuppliers[+pi];
+        $('paperDetailDist').textContent = paper.distances[+i].toLocaleString();
+      }
       calculate();
     });
 
     alginateSelect.addEventListener('change', () => {
       const i = alginateSelect.value;
+      const ci = coatingSelect.value;
       if (!i) { hideDetail('alginateDetail'); $('alginateDropCard').classList.remove('active'); }
       else {
         const item = alginateSuppliers[+i];
+        const dist = ci !== '' ? item.distances[+ci] : '—';
         showDetail('alginateDetail', {
           alginateDetailName:  item.name,
           alginateDetailPrice: item.pricePerKg.toFixed(2),
-          alginateDetailDist:  item.distance.toLocaleString()
+          alginateDetailDist:  dist !== '—' ? dist.toLocaleString() : '—'
         });
         $('alginateDropCard').classList.add('active');
       }
@@ -952,13 +1087,15 @@
 
     paperSelect.addEventListener('change', () => {
       const i = paperSelect.value;
+      const ci = coatingSelect.value;
       if (!i) { hideDetail('paperDetail'); $('paperDropCard').classList.remove('active'); }
       else {
         const item = paperboardSuppliers[+i];
+        const dist = ci !== '' ? item.distances[+ci] : '—';
         showDetail('paperDetail', {
           paperDetailName:  item.name,
           paperDetailPrice: item.pricePerKg.toFixed(2),
-          paperDetailDist:  item.distance.toLocaleString()
+          paperDetailDist:  dist !== '—' ? dist.toLocaleString() : '—'
         });
         $('paperDropCard').classList.add('active');
       }
